@@ -44,3 +44,4 @@ Thumbs.db
 # Files from backend
 /backend/node_modules
 /backend/images
+/backend/.env
