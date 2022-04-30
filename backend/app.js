@@ -24,6 +24,7 @@ mongoose
 
 app.use(express.json());
 app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: "same-site" } })); // Permet d'afficher les images bloquées par helmet
 
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
