@@ -64,19 +64,6 @@ sinon le fichier image déjà présent est gardé
 Seul l'utilisateur ayant créé la sauce peut la supprimer
 */
 exports.modifySauce = async (req, res, next) => {
-  const sauce = await Sauce.findOne({ _id: req.params.id });
-  if (!sauce) {
-    res.status(404).json({
-      error: new Error("Sauce does not exist"),
-    });
-    return;
-  }
-  if (sauce.userId !== req.auth.userId) {
-    res.status(403).json({
-      error: "Unauthorised User",
-    });
-    return;
-  }
   if (!req.file) {
     sauceFct.updateSauce(req, res, req.body);
   } else {
@@ -86,40 +73,26 @@ exports.modifySauce = async (req, res, next) => {
         req.file.filename
       }`,
     };
-    const filename = sauce.imageUrl.split("/images/")[1];
+    const filename = req.sauceFound.imageUrl.split("/images/")[1];
     fs.unlink(`images/${filename}`, () => {
       sauceFct.updateSauce(req, res, sauceObject);
     });
   }
 };
 
-/* Supprime une sauce
-Seul l'utilisateur ayant créé la sauce peut la supprimer
-*/
+// Supprime une sauce
 exports.deleteSauce = async (req, res, next) => {
-  const sauce = await Sauce.findOne({ _id: req.params.id });
-  if (!sauce) {
-    res.status(404).json({
-      error: new Error("Sauce does not exist"),
-    });
-  }
-  if (sauce.userId !== req.auth.userId) {
-    res.status(403).json({
-      error: "Unauthorised User",
-    });
+  if (!req.sauceFound.imageUrl) {
+    req.sauceFound
+      .deleteOne({ _id: req.params.id })
+      .then(() => res.status(204).json("Sauce deleted"));
   } else {
-    if (!sauce.imageUrl) {
-      sauce
-        .deleteOne({ _id: req.params.id })
-        .then(() => res.status(204).json("Sauce deleted"));
-    } else {
-      const filename = sauce.imageUrl.split("/images/")[1];
-      fs.unlink(`images/${filename}`, () => {
-        Sauce.deleteOne({ _id: req.params.id }).then(() => {
-          res.status(200).json({ message: "Sauce deleted" });
-        });
+    const filename = req.sauceFound.imageUrl.split("/images/")[1];
+    fs.unlink(`images/${filename}`, () => {
+      Sauce.deleteOne({ _id: req.params.id }).then(() => {
+        res.status(200).json({ message: "Sauce deleted" });
       });
-    }
+    });
   }
 };
 
