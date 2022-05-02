@@ -9,7 +9,7 @@ router.post("/", auth, multer, sauceCtrl.createSauce);
 
 router.get("/", auth, sauceCtrl.getAllSauce);
 
-router.get("/:id", auth, sauceCtrl.getOneSauce);
+router.get("/:id", auth, checking.sauceExists, sauceCtrl.getOneSauce);
 
 router.put(
   "/:id",
@@ -20,7 +20,12 @@ router.put(
   sauceCtrl.modifySauce
 );
 
-router.post("/:id/like", auth, sauceCtrl.likeSauce);
+router.post(
+  "/:id/like",
+  auth,
+  checking.sauceExists,
+  sauceCtrl.updatelikeOrDislike
+);
 
 router.delete(
   "/:id",

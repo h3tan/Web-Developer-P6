@@ -49,102 +49,69 @@ exports.getAllSauce = async (req, res, next) => {
     });
 };
 
-/* Récupère une sauce */
+/* Récupère une sauce
+  L'existence de la sauce dans la base de données est traitée par le middleware "checking.sauceExists"
+*/
 exports.getOneSauce = async (req, res, next) => {
-  const sauce = await Sauce.findOne({ _id: req.params.id });
-  if (sauce) {
-    res.status(200).json(sauce);
-  } else {
-    res.status(404).json({ error: new Error("Sauce does not exist") });
-  }
-};
+  res.status(200).json(req.sauceFound);
+}
 
 /* Modifie une sauce, si un fichier image est présent, remplace le précédent après l'avoir supprimé
 sinon le fichier image déjà présent est gardé
-Seul l'utilisateur ayant créé la sauce peut la supprimer
 */
 exports.modifySauce = async (req, res, next) => {
-  if (!req.file) {
-    sauceFct.updateSauce(req, res, req.body);
-  } else {
-    const sauceObject = {
+  let sauceObject = req.body;
+  if (req.file) {
+    sauceObject = {
       ...JSON.parse(req.body.sauce),
       imageUrl: `${req.protocol}://${req.get("host")}/images/${
         req.file.filename
       }`,
-    };
+    }
     const filename = req.sauceFound.imageUrl.split("/images/")[1];
     fs.unlink(`images/${filename}`, () => {
-      sauceFct.updateSauce(req, res, sauceObject);
+      console.log(`${filename} deleted`)
     });
   }
+  sauceFct.updateSauce(req, res, sauceObject);
 };
 
-// Supprime une sauce
+/* Supprime une sauce
+L'existence de la sauce dans la base de données est traitée par le middleware "checking.sauceExists"
+*/
 exports.deleteSauce = async (req, res, next) => {
-  if (!req.sauceFound.imageUrl) {
-    req.sauceFound
-      .deleteOne({ _id: req.params.id })
-      .then(() => res.status(204).json("Sauce deleted"));
-  } else {
+  if (req.sauceFound.imageUrl) {
     const filename = req.sauceFound.imageUrl.split("/images/")[1];
-    fs.unlink(`images/${filename}`, () => {
-      Sauce.deleteOne({ _id: req.params.id }).then(() => {
-        res.status(200).json({ message: "Sauce deleted" });
-      });
-    });
+    fs.unlink(`images/${filename}`, () => { console.log(`${filename} deleted`)});
   }
+  Sauce.deleteOne({ _id: req.params.id })
+  .then(() => {res.status(200).json({ message: "Sauce deleted" });
+  });
 };
 
 /* Gestion des likes
 Un utilisateur ayant déjà liké une sauce ne peut la disliker ou la liker à nouveau,
 Pour liker/disliker à nouveau, l'utilisateur doit d'abord annuler son like/dislike
 */
-exports.likeSauce = async (req, res, next) => {
+exports.updatelikeOrDislike = async (req, res, next) => {
   const userId = req.body.userId;
   const like = req.body.like;
-  const sauce = await Sauce.findOne({ _id: req.params.id });
-  if (!sauce) {
-    res.status(400).json({ error: new Error("Sauce does not exist") });
-  }
+  const sauce = req.sauceFound;
   let confirmMessage = "";
   switch (like) {
     case 1:
-      if (
-        !sauce.usersLiked.includes(userId) &&
-        !sauce.usersDisliked.includes(userId)
-      ) {
-        sauce.usersLiked.addToSet(userId);
-        confirmMessage = "Sauce Liked !";
-      } else {
-        res.status(400).json({ error: "Sauce already liked or disliked!" });
-        return;
-      }
+      confirmMessage = sauceFct.modifyLikeOrDislike(userId, sauce, like, res);
       break;
     case -1:
-      if (
-        !sauce.usersLiked.includes(userId) &&
-        !sauce.usersDisliked.includes(userId)
-      ) {
-        sauce.usersDisliked.addToSet(userId);
-        confirmMessage = "Sauce Disliked !";
-      } else {
-        res.status(400).json({ error: "Sauce already liked or disliked!" });
-        return;
-      }
+      confirmMessage = sauceFct.modifyLikeOrDislike(userId, sauce, like, res);
       break;
     case 0:
-      if (sauce.usersLiked.includes(userId)) {
-        sauce.usersLiked.pull(userId);
-        confirmMessage = "Like Cancelled !";
+      confirmMessage = sauceFct.cancelLikeOrDislike(userId, sauce, res);
+      if (!confirmMessage) {
+        res.status(400).json({ error: "No like or dislike to cancel" });
+      } else {
         break;
       }
-      if (sauce.usersDisliked.includes(userId)) {
-        sauce.usersDisliked.pull(userId);
-        confirmMessage = "Dislike Cancelled !";
-        break;
-      }
-      res.status(400).json({ error: "No like or dislike to cancel" });
       return;
     default:
       res.status(400).json({ error: "Incorrect value of like !" });
@@ -159,6 +126,10 @@ exports.likeSauce = async (req, res, next) => {
       usersDisliked: sauce.usersDisliked,
     }
   ).then(() => {
-    res.status(200).json({ message: confirmMessage });
+    if (!confirmMessage) {
+      res.status(400).json({ message: 'Sauce already liked or disliked !' });
+    } else {
+      res.status(200).json({ message: confirmMessage });
+    }
   });
 };

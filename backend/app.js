@@ -19,8 +19,8 @@ mongoose
     `mongodb+srv://${MY_ID}:${MY_PASSWORD}@${MY_CLUSTER}.wqmvs.mongodb.net/${MY_DATABASE}?retryWrites=true&w=majority`,
     { useNewUrlParser: true, useUnifiedTopology: true }
   )
-  .then(() => console.log("Connexion à MongoDB réussie !"))
-  .catch(() => console.log("Connexion à MongoDB échouée !"));
+  .then(() => console.log("MongoDB connection succeeded !"))
+  .catch(() => console.log("MongodDB connection failed !"));
 
 app.use(express.json());
 app.use(helmet());

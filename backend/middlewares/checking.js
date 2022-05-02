@@ -5,7 +5,14 @@ exports.sauceExists = async (req, res, next) => {
   try {
     // Ajout de la sauce trouvée dans la base de donnée dans l'objet req afin de permettre aux autres méthodes de la récupérer
     req.sauceFound = await Sauce.findOne({ _id: req.params.id });
-    next();
+    if (!req.sauceFound) {
+      // Cas où l'Id de la requête est de même longueur qu'un Id de la base de données mais n'existe pas (req.sauceFound = null)
+      res.status(404).json({
+        error: "Sauce does not exist",
+      });
+    } else {
+      next();
+    }
   } catch {
     res.status(404).json({
       error: "Sauce does not exist",

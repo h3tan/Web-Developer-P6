@@ -15,60 +15,27 @@ exports.updateSauce = (req, res, sauceInformations) => {
   );
 };
 
-exports.addLike = (id, sauce, res) => {
+exports.modifyLikeOrDislike = (id, sauce, like, res) => {
   if (!sauce.usersLiked.includes(id) && !sauce.usersDisliked.includes(id)) {
-    sauce.usersLiked.addToSet(id);
-    sauce.likes = sauce.usersLiked.length;
-    Sauce.updateOne(
-      { _id: sauce.id },
-      { likes: sauce.likes, usersLiked: sauce.usersLiked }
-    ).then(() => res.status(200).json({ message: "Sauce Liked !" }));
-  } else {
-    res
-      .status(400)
-      .json({ message: "User has already like or dislike this sauce !" });
-  }
-};
-
-exports.addDislike = (id, sauce, res) => {
-  if (!sauce.usersLiked.includes(id) && !sauce.usersDisliked.includes(id)) {
-    sauce.usersDisliked.addToSet(id);
-    sauce.dislikes = sauce.usersDisliked.length;
-    Sauce.updateOne(
-      { _id: sauce.id },
-      { dislikes: sauce.dislikes, usersDisliked: sauce.usersDisliked }
-    ).then(() => res.status(200).json({ message: "Sauce Disliked !" }));
-  } else {
-    res
-      .status(400)
-      .json({ message: "User has already like or dislike this sauce !" });
-  }
-};
-
-exports.cancelLike = (id, sauce, res) => {
-  sauce.usersLiked.pull(id);
-  sauce.likes = sauce.usersLiked.length;
-  Sauce.updateOne(
-    { _id: sauce.id },
-    {
-      likes: sauce.likes,
-      usersLiked: sauce.usersLiked,
+    if (like == 1) {
+      sauce.usersLiked.addToSet(id);
+      return "Sauce Liked !";
+    } else {
+      sauce.usersDisliked.addToSet(id);
+      return "Sauce Disliked !";
     }
-  ).then(() => {
-    res.status(200).json({ message: "Like cancelled !" });
-  });
+  }
+  return false;
 };
 
-exports.cancelDislike = (id, sauce, res) => {
-  sauce.usersDisliked.pull(id);
-  sauce.dislikes = sauce.usersDisliked.length;
-  Sauce.updateOne(
-    { _id: sauce.id },
-    {
-      dislikes: sauce.dislikes,
-      usersDisliked: sauce.usersDisliked,
-    }
-  ).then(() => {
-    res.status(200).json({ message: "Dislike cancelled !" });
-  });
+exports.cancelLikeOrDislike = (id, sauce, res) => {
+  if (sauce.usersLiked.includes(id)) {
+    sauce.usersLiked.pull(id);
+    return "Like Cancelled !";
+  }
+  if (sauce.usersDisliked.includes(id)) {
+    sauce.usersDisliked.pull(id);
+    return "Dislike Cancelled !";
+  }
+  return false;
 };
